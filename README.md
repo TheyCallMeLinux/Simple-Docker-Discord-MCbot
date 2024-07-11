@@ -26,12 +26,18 @@ npm install dotenv
 ## Create a .env file
 
 Create a .env file:
-
-This file will store your bot's token securely.
-
 ```bash
 echo "DISCORD_TOKEN='YOUR_BOT_TOKEN'" > .env
 ```
+This file will store your bot's token securely.
+## Modify the bot const
+change these values according to your needs: 
+
+- const dockerComposeFile = '/home/$user/docker-minecraft/docker-compose.yml';
+- const dockerContainerName = 'mcserver';
+- const YourGuildID = 'YOUR_GUILD_ID';
+
+
 ## Run the bot
 Execute your bot script using Node.js:
 
