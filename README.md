@@ -75,7 +75,7 @@ TODO
 - [x] Set a countdown before execution/poll closes
 
 #### Poll Results Verification
-- [ ] Limit reactions per user to 1 for more accurate poll results.
+- [x] Limit reactions per user to 1 for more accurate poll results.
 - [ ] Easily configure the number of reactions required
 
 #### Command Usage Logging
