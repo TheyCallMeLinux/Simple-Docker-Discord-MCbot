@@ -71,7 +71,7 @@ TODO
 - [ ] Implement cooldown for other commands to maintain the bot's performance and prevent user spamming.
 
 ####  Poll Timeout
-- [ ] Set a timeout for your bot's polls, ending them if no reaction is received within that time.
+- [x] Set a timeout for your bot's polls, ending them if no reaction is received within that time.
 - [x] Set a countdown before execution/poll closes
 
 #### Poll Results Verification
