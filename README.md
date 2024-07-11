@@ -57,7 +57,7 @@ with your Discord server ID/bot token
 to create commands, read messages, and add reactions.
 #### Make sure Docker and docker-compose are installed and configured correctly 
 on the host system where this script runs.
-Adjust the command docker compose up -d if your docker-compose.yml is located in a different directory or requires additional flags.
+Adjust the variables located in bot.js (or requires additional flags.)
 
 
 #
