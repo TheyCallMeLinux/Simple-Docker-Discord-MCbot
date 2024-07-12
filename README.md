@@ -20,7 +20,7 @@ npm init -y
 npm install discord.js@14 @discordjs/rest discord-api-types
 ```
 ```bash
-npm install dotenv
+npm install dotenv js-yaml 
 ```
 
 ## Create a .env file
