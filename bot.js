@@ -1,13 +1,19 @@
 const dockerComposeFile = '/home/$user/docker-minecraft/docker-compose.yml';
-const dockerContainerName = 'mcserver';
-const YourGuildID = 'YOUR_GUILD_ID';
+const dockerContainerName = 'mcserver'; // the name of your docker container, sometimes called mc with itzg/minecraft-server
+const YourGuildID = 'YOUR_GUILD_ID'; //Right click on your discord server and Copy ID down at the bottom
+const CntdwnTimer = 15; // 15 seconds counter for the poll in Discord
 //
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 require('dotenv').config();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions
+  ]
 });
 
 const commands = [
@@ -22,7 +28,6 @@ let lastUsed = 0;
 const cooldown = 60 * 1000; // 1 minute cooldown
 
 client.once('ready', async () => {
-  //
   console.log(`---------------------------------`);
   console.log(`Logged in as ${client.user.tag}!`);
   console.log(`---------------------------------`);
@@ -31,7 +36,6 @@ client.once('ready', async () => {
   console.log(`Discord server ID set in the const YourGuildID: ${YourGuildID}`);
   console.log(`Docker container name set in the config: ${dockerContainerName}`);
   console.log(`...`);
-  //
   try {
     await rest.put(
       Routes.applicationGuildCommands(client.user.id, (YourGuildID)),
@@ -66,11 +70,11 @@ client.on('interactionCreate', async interaction => {
       await pollMessage.react('👎');
 
       const filter = (reaction, user) => (reaction.emoji.name === '👍' || reaction.emoji.name === '👎') && !user.bot;
-      const collector = pollMessage.createReactionCollector({ filter, time: 10000 });
+      const collector = pollMessage.createReactionCollector({ filter, time: CntdwnTimer * 1000 });
 
       const userReactions = new Map();
 
-      let countdown = 10;
+      let countdown = CntdwnTimer;
       const countdownInterval = setInterval(() => {
         countdown -= 1;
         if (countdown <= 0) {
@@ -92,7 +96,7 @@ client.on('interactionCreate', async interaction => {
         console.log(`[${new Date().toISOString()}] ${user.tag} reacted with ${reaction.emoji.name}`);
       });
 
-      collector.on('end', collected => {
+      collector.on('end', async collected => {
         clearInterval(countdownInterval);
         const thumbsUpCount = Array.from(userReactions.values()).filter(emoji => emoji === '👍').length;
         const thumbsDownCount = Array.from(userReactions.values()).filter(emoji => emoji === '👎').length;
@@ -101,7 +105,6 @@ client.on('interactionCreate', async interaction => {
 
         if (thumbsUpCount > 0 && thumbsDownCount === 0) {
           console.log(`[${new Date().toISOString()}] Restarting Docker machine.`);
-          const execSync = require('child_process').execSync;
           const yaml = require('js-yaml');
           const fs = require('fs');
 
@@ -111,7 +114,7 @@ client.on('interactionCreate', async interaction => {
             fileContent = fs.readFileSync(dockerComposeFile, 'utf8');
           } catch (err) {
             console.error(`Error reading Docker Compose file: ${err}`);
-            interaction.followUp(`Failed to read Docker Compose file: ${err.message}`);
+            await interaction.followUp(`Failed to read Docker Compose file: ${err.message}`);
             return;
           }
 
@@ -121,11 +124,36 @@ client.on('interactionCreate', async interaction => {
 
           // Build and execute the Docker stop command for the specific service/container
           try {
-            execSync(`./docker-restart.sh ${dockerContainerName} | sed "s|^|$('date') :: |" >> debug.log`);
-            console.log('Docker machine restarted successfully.');
-            interaction.followUp('Docker machine restarted successfully.');
+            const command = './docker-restart.sh';
+            const args = [dockerContainerName];
+            const child = spawn(command, args);
+
+            const logStream = fs.createWriteStream('debug.log', { flags: 'a' });
+
+            child.stdout.on('data', (data) => {
+              const logLine = `${new Date().toISOString()} :: ${data}`;
+              process.stdout.write(logLine);
+              logStream.write(logLine);
+            });
+
+            child.stderr.on('data', (data) => {
+              const logLine = `${new Date().toISOString()} :: ${data}`;
+              process.stderr.write(logLine);
+              logStream.write(logLine);
+            });
+
+            child.on('close', (code) => {
+              logStream.end();
+              if (code === 0) {
+                console.log('Docker machine restarted successfully.');
+                interaction.followUp('Docker machine restarted successfully.');
+              } else {
+                console.error(`docker-restart.sh script exited with code ${code}`);
+                interaction.followUp(`Failed to restart Docker machine: script exited with code ${code}`);
+              }
+            });
           } catch (error) {
-            console.error(`execSync error: ${error}`);
+            console.error(`Spawn error: ${error}`);
             interaction.followUp(`Failed to restart Docker machine: ${error.message}`);
           }
         } else {
@@ -138,5 +166,4 @@ client.on('interactionCreate', async interaction => {
     }
   }
 });
-
 client.login(process.env.DISCORD_TOKEN);
